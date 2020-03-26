@@ -8,6 +8,7 @@ FQDIR = params.fqDir
 CNTDIR = params.countDir
 QCDIR = params.qcDir
 
+// Read and process sample sheet
 sheet = file(params.sheet)
 
 if ( params.sheetType == "simple" ) {
@@ -15,7 +16,7 @@ if ( params.sheetType == "simple" ) {
    Channel
 	 .fromPath(params.sheet)
 	 .splitCsv(header:false)
-	 .map{ row -> tuple(row[0], row[1], row[2]) }
+	 .map{ row -> tuple(row[0], row[1], row[2]) } // 0: samp.id; 1: samp.name; 2.samp.project
          .tap{info1}
 	 .into { cellrangerMKF; crCount_csv }
 
@@ -40,19 +41,21 @@ else {
 	 }
 	
      }
+// all samplesheet info
      Channel
 	.fromPath(newsheet)
 	.splitCsv(header:true)
-        .tap{info1}
+        .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project) }
+        .unique()
+        .tap{infoall}
 	.into { cellrangerMKF; crCount_csv; infoch}
-     
 }
 
-info1.subscribe{ println "Info: $it" }
+infoall.subscribe{ println "Info: $it" }
+     
 /*
 * Print Info on experiment and sample sheet
 */
-
 process printInfo {
 
 	input:
@@ -80,9 +83,7 @@ process printInfo {
 
 info.view {  it }
 
-
 // Run mkFastq
-
 process mkfastq {
 	
 	publishDir "${FQDIR}/", mode: 'copy', overwrite: true
@@ -91,7 +92,7 @@ process mkfastq {
         val sheet 
 
 	output:
-	file("$metaID/outs//*.fastq.gz") into (cellrangerCount, fqc_ch, multiqc_ch) mode flatten
+	file("$metaID/outs/**/*.fastq.gz") into (cellrangerCount, fqc_ch, multiqc_ch) mode flatten
 	file("$metaID/outs/fastq_path/Stats/*") into bqcPaths
 
 	"""
@@ -106,25 +107,25 @@ process mkfastq {
 	"""
 }
 
-/*
+
 process count {
 	publishDir "${CNTDIR}/", mode: "copy", overwrite: true
 
 	input: 
 	file x from cellrangerCount
-	set sample_id, sample_name, proj from crCount_csv
+        set sid, sname, projid from crCount_csv
 
 	output:
-	file "${proj}/${proj}.mri.tgz" into cellrangerPost
+	file "${sid}/${sid}.mri.tgz" into cellrangerPost
 
 	
 	"""
-	cellranger-atac count \\
-	     --id=$ID \\
-	     --fastqs="${FQDIR}/${proj}/outs/fastq_path/${project}/" \\
-	     --sample=$sample_name \\
-	     --reference=/opt/refdata-cellranger-atac-GRCh38-1.2.0/
-
+	cellranger count \\
+	     --id=$sid \\
+	     --fastqs="${FQDIR}/${metaID}/outs/fastq_path/${projid}/${sid}" \\
+	     --sample=$sid \\
+	     --transcriptome=/opt/refdata-cellranger-GRCh38-3.0.0/ \\
+             --localcores=56 --localmem=90
 	"""
 }
 
@@ -154,6 +155,7 @@ process multiqc {
 
     input:
     file x from qc_ch.collect()
+    file y from cellrangerPost
 
     output:
     file "multiqc_report.html" into multiqc_outch
@@ -165,4 +167,4 @@ process multiqc {
 
     """
 }
-*/
+
