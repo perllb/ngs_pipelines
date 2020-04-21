@@ -7,11 +7,11 @@ OUTDIR = params.outDir
 FQDIR = params.fqDir
 CNTDIR = params.countDir
 QCDIR = params.qcDir
+lanes = params.lanes // should be set to lanes=0 if all lanes to be included. otherwise, set "1,3" etc.
 
 // Read and process sample sheet
 sheet = file(params.sheet)
 
-// The "simple" type should be on the format: <sample id>, <sample name>, <sample project>
 if ( params.sheetType == "simple" ) {
    
    Channel
@@ -24,7 +24,7 @@ if ( params.sheetType == "simple" ) {
    sheet = file(params.sheet)
 }
 else {
-     // create new file for reading into channels that provide sample info!
+
      newsheet = file("$exp/sample_sheet.nf.csv")
 
      allLines = sheet.readLines()
@@ -53,7 +53,7 @@ else {
 }
 
 infoall.subscribe{ println "Info: $it" }
-
+     
 /*
 * Print Info on experiment and sample sheet
 */
@@ -71,7 +71,7 @@ process printInfo {
 	"""
 	printf "======= Info ==========\n"
 
-	printf ">>> scRNAseq 10x Chromium >>>\n"
+	printf ">>> Novaseq custom library BCL2FASTQ >>>\n"
 
 	printf "> Experiment: $exp \n"
 	printf "> Sample sheet: $sheet \n"
@@ -84,64 +84,38 @@ process printInfo {
 
 info.view {  it }
 
-// Run mkFastq
-process mkfastq {
+// Run bcl2fastq
+process bcl2fastq {
 	
+	publishDir "${FQDIR}/", mode: 'copy', overwrite: true
+
 	input:
         val sheet 
 
 	output:
-	file("**.fastq.gz") into fqc_ch
-	val 1 into crcount
+	file("$metaID/outs/**/*.fastq.gz") into (cellrangerCount, fqc_ch, multiqc_ch) mode flatten
+	file("$metaID/outs/fastq_path/Stats/*") into bqcPaths
 
 	"""
-	cellranger mkfastq \\
-    		   --id=$metaID \\
-        	   --run=$exp \\
-		   --csv=$sheet \\
-	           --jobmode=local \\
-		   --localmem=120 \\
-		   --qc \\
-                   --output-dir $FQDIR 
-		  
+        bcl2fastq -R $exp \\
+                  -o $OUTDIR \\
+		  --sample-sheet $sheet \\
+	         
+        
+                		  
 	"""
 }
 
-
-process count {
-
-	publishDir "${CNTDIR}/", mode: "copy", overwrite: true
-
-	input: 
-	val x from crcount
-        set sid, sname, projid from crCount_csv
-
-	output:
-	file "${sname}/*" into cellrangerPost
-
-	"""
-	cellranger count \\
-	     --id=$sname \\
-	     --fastqs=${FQDIR} \\
-	     --sample=$sname \\
-	     --transcriptome=/opt/refdata-cellranger-GRCh38-3.0.0/ \\
-             --localcores=56 --localmem=90
-
-        mkdir -p $QCDIR
-        cp ${sname}/outs/web_summary.html ${QCDIR}/${sname}.web_summary.html
-	"""
-}
-
-
+/*
 process fastqc {
 
-	publishDir "${QCDIR}/", mode: 'copy', overwrite: true, pattern: "*_fastqc.*"
+	publishDir "${QCDIR}/", mode: 'copy', overwrite: true
 
 	input:
-	file x from fqc_ch 
+	file x from fqc_ch
 
         output:
-        val "1" into qc_ch
+        file "*fastqc.{zip,html}" into qc_ch mode flatten
     
 	"""
         mkdir -p $QCDIR
@@ -157,7 +131,8 @@ process multiqc {
     publishDir "${QCDIR}/", mode: 'copy', overwrite: true
 
     input:
-    val x from qc_ch
+    file x from qc_ch.collect()
+ //   file y from cellrangerPost
 
     output:
     file "multiqc_report.html" into multiqc_outch
@@ -169,3 +144,5 @@ process multiqc {
 
     """
 }
+
+*/
