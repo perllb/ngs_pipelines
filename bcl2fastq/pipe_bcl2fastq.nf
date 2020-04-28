@@ -1,8 +1,10 @@
 #!/usr/bin/env nextFlow
 
 // set variables
-exp = params.experiment
-metaID = params.metaid
+exp = params.experiment // param has to be set manually in nextflow.config file
+metaID = params.metaid // param has to be set manually in nextflow.config file
+
+// automatically assigned in config file
 OUTDIR = params.outDir
 FQDIR = params.fqDir
 CNTDIR = params.countDir
@@ -11,46 +13,6 @@ lanes = params.lanes // should be set to lanes=0 if all lanes to be included. ot
 
 // Read and process sample sheet
 sheet = file(params.sheet)
-
-if ( params.sheetType == "simple" ) {
-   
-   Channel
-	 .fromPath(params.sheet)
-	 .splitCsv(header:false)
-	 .map{ row -> tuple(row[0], row[1], row[2]) } // 0: samp.id; 1: samp.name; 2.samp.project
-         .tap{info1}
-	 .into { cellrangerMKF; crCount_csv }
-
-   sheet = file(params.sheet)
-}
-else {
-
-     newsheet = file("$exp/sample_sheet.nf.csv")
-
-     allLines = sheet.readLines()
-     
-     writeB = false
-     newsheet.text=""     
-
-     for ( line in allLines ) {
-
-	 if ( writeB ) {
-	    newsheet.append(line + "\n")
-	 }
-	 if (line.contains("[Data]")) {
-	    writeB = true
-	 }
-	
-     }
-// all samplesheet info
-     Channel
-	.fromPath(newsheet)
-	.splitCsv(header:true)
-        .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project) }
-        .unique()
-        .tap{infoall}
-	.into { cellrangerMKF; crCount_csv; infoch}
-}
 
 infoall.subscribe{ println "Info: $it" }
      
@@ -106,7 +68,6 @@ process bcl2fastq {
 	"""
 }
 
-/*
 process fastqc {
 
 	publishDir "${QCDIR}/", mode: 'copy', overwrite: true
@@ -132,7 +93,6 @@ process multiqc {
 
     input:
     file x from qc_ch.collect()
- //   file y from cellrangerPost
 
     output:
     file "multiqc_report.html" into multiqc_outch
@@ -145,4 +105,4 @@ process multiqc {
     """
 }
 
-*/
+

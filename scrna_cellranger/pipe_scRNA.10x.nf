@@ -11,46 +11,44 @@ QCDIR = params.qcDir
 // Read and process sample sheet
 sheet = file(params.sheet)
 
-// The "simple" type should be on the format: <sample id>, <sample name>, <sample project>
-if ( params.sheetType == "simple" ) {
-   
-   Channel
-	 .fromPath(params.sheet)
-	 .splitCsv(header:false)
-	 .map{ row -> tuple(row[0], row[1], row[2]) } // 0: samp.id; 1: samp.name; 2.samp.project
-         .tap{info1}
-	 .into { cellrangerMKF; crCount_csv }
+// create new file for reading into channels that provide sample info!
+newsheet = file("$exp/sample_sheet.nf.csv")
 
-   sheet = file(params.sheet)
+allLines = sheet.readLines()
+writeB = false // if next lines has sample info
+readS = false // if next line contain species info
+newsheet.text=""     
+for ( line in allLines ) {
+
+    // Define species of samples
+    if ( readS ) {
+	species = line
+	if ( species.contains("Human") || species.contains("human" )) {
+	    genome = "/opt/refdata-cellranger-GRCh38-3.0.0/" 
+	} else {
+	    genome = "/opt/refdata-cellranger-mm10-3.0.0/"
+	}
+	readS = false
+    }
+    if ( writeB ) {
+	newsheet.append(line + "\n")
+    }
+    if (line.contains("[Data]")) {
+	writeB = true
+    }
+    if (line.contains("[Species]")) {
+	readS = true
+    }
 }
-else {
-     // create new file for reading into channels that provide sample info!
-     newsheet = file("$exp/sample_sheet.nf.csv")
 
-     allLines = sheet.readLines()
-     
-     writeB = false
-     newsheet.text=""     
-
-     for ( line in allLines ) {
-
-	 if ( writeB ) {
-	    newsheet.append(line + "\n")
-	 }
-	 if (line.contains("[Data]")) {
-	    writeB = true
-	 }
-	
-     }
 // all samplesheet info
-     Channel
-	.fromPath(newsheet)
-	.splitCsv(header:true)
-        .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project) }
-        .unique()
-        .tap{infoall}
-	.into { cellrangerMKF; crCount_csv; infoch}
-}
+Channel
+    .fromPath(newsheet)
+    .splitCsv(header:true)
+    .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project) }
+    .unique()
+    .tap{infoall}
+    .into { cellrangerMKF; crCount_csv; infoch}
 
 infoall.subscribe{ println "Info: $it" }
 
@@ -77,7 +75,8 @@ process printInfo {
 	printf "> Sample sheet: $sheet \n"
 	printf "> Project ID: $metaID \n"
 	printf "> output dir: $OUTDIR \n"
-
+        printf "> Species: $species \n"
+        printf "> Reference data: $genome \n"
 	printf "======================= \n"
 	"""	
 }
@@ -91,7 +90,7 @@ process mkfastq {
         val sheet 
 
 	output:
-	file("**.fastq.gz") into fqc_ch
+	file("$metaID/outs/**/*.fastq.gz") into fqc_ch
 	val 1 into crcount
 
 	"""
@@ -124,8 +123,9 @@ process count {
 	     --id=$sname \\
 	     --fastqs=${FQDIR} \\
 	     --sample=$sname \\
-	     --transcriptome=/opt/refdata-cellranger-GRCh38-3.0.0/ \\
-             --localcores=56 --localmem=90
+             --project=$projid \\
+	     --transcriptome=$genome \\
+             --localcores=56 --localmem=180 
 
         mkdir -p $QCDIR
         cp ${sname}/outs/web_summary.html ${QCDIR}/${sname}.web_summary.html
@@ -138,7 +138,7 @@ process fastqc {
 	publishDir "${QCDIR}/", mode: 'copy', overwrite: true, pattern: "*_fastqc.*"
 
 	input:
-	file x from fqc_ch 
+	file x from fqc_ch.flatten()
 
         output:
         val "1" into qc_ch
@@ -157,7 +157,7 @@ process multiqc {
     publishDir "${QCDIR}/", mode: 'copy', overwrite: true
 
     input:
-    val x from qc_ch
+    val x from qc_ch.collect()
 
     output:
     file "multiqc_report.html" into multiqc_outch
