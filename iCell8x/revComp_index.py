@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
 
 # Take reverse complement of index 5 well list provided by iCell8x
 
-
 # ## Install biopython
 # pip install biopython
-
-# In[9]:
 
 
 from Bio import SeqIO
@@ -22,10 +17,6 @@ import pandas as pd
 import csv
 
 import sys, getopt
-
-
-# In[10]:
-
 
 def main(argv):
     # Read WellList file
@@ -72,15 +63,6 @@ def main(argv):
 if __name__ == "__main__":
     main(sys.argv[1:])
 
-
-# In[11]:
-
-
 get_ipython().run_line_magic('tb', '')
-
-
-# In[ ]:
-
-
 
 
