@@ -14,8 +14,6 @@ lanes = params.lanes // should be set to lanes=0 if all lanes to be included. ot
 // Read and process sample sheet
 sheet = file(params.sheet)
 
-infoall.subscribe{ println "Info: $it" }
-     
 /*
 * Print Info on experiment and sample sheet
 */
@@ -44,42 +42,39 @@ process printInfo {
 	"""	
 }
 
-info.view {  it }
 
 // Run bcl2fastq
 process bcl2fastq {
 	
-	publishDir "${FQDIR}/", mode: 'copy', overwrite: true
-
 	input:
         val sheet 
 
 	output:
-	file("$metaID/outs/**/*.fastq.gz") into (cellrangerCount, fqc_ch, multiqc_ch) mode flatten
-	file("$metaID/outs/fastq_path/Stats/*") into bqcPaths
+        val "1" into fqc_ch
 
 	"""
         bcl2fastq -R $exp \\
-                  -o $OUTDIR \\
-		  --sample-sheet $sheet \\
-	         
-        
+                  --sample-sheet $sheet \\
+                  --no-lane-splitting \\
+                  --output-dir $OUTDIR        
+   
                 		  
 	"""
 }
 
 process fastqc {
 
-	publishDir "${QCDIR}/", mode: 'copy', overwrite: true
+	publishDir "${QCDIR}/FastQC/", mode: 'copy', overwrite: true
 
 	input:
 	file x from fqc_ch
 
         output:
-        file "*fastqc.{zip,html}" into qc_ch mode flatten
+        file "*fastqc.{zip,html}" into qc_ch 
     
 	"""
         mkdir -p $QCDIR
+        mkdir -p $QCDIR/FastQC
 
 	fastqc $x 
 	"""

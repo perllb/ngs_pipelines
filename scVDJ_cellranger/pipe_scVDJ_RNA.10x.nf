@@ -7,6 +7,8 @@ OUTDIR = params.outDir
 FQDIR = params.fqDir
 CNTDIR = params.countDir
 QCDIR = params.qcDir
+VDJDIR = params.vdjDir
+SUMDIR = params.sumDir
 
 // Read and process sample sheet
 sheet = file(params.sheet)
@@ -14,10 +16,13 @@ sheet = file(params.sheet)
 // create new file for reading into channels that provide sample info!
 newsheet = file("$exp/sample_sheet.nf.csv")
 
+
+// read samplesheet. Get species, and sample info
 allLines = sheet.readLines()
 writeB = false // if next lines has sample info
 readS = false // if next line contain species info
 newsheet.text=""     
+
 for ( line in allLines ) {
 
     // Define species of samples
@@ -25,8 +30,10 @@ for ( line in allLines ) {
 	species = line
 	if ( species.contains("Human") || species.contains("human" )) {
 	    genome = "/opt/refdata-cellranger-GRCh38-3.0.0/" 
+	    vdj_genome = "/opt/refdata-cellranger-vdj-GRCh38-alts-ensembl-3.1.0"
 	} else {
 	    genome = "/opt/refdata-cellranger-mm10-3.0.0/"
+	    vdj_genome = "/opt/refdata-cellranger-vdj-GRCm38-alts-ensembl-3.1.0"
 	}
 	readS = false
     }
@@ -41,47 +48,27 @@ for ( line in allLines ) {
     }
 }
 
-// all samplesheet info
+// collect samplesheet info
 Channel
     .fromPath(newsheet)
     .splitCsv(header:true)
-    .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project) }
+    .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project, row.Library_Type ) }
     .unique()
     .tap{infoall}
-    .into { cellrangerMKF; crCount_csv; infoch}
+    .into { crCount_csv; crVDJ_csv}
 
 infoall.subscribe{ println "Info: $it" }
 
-/*
-* Print Info on experiment and sample sheet
-*/
-process printInfo {
 
-	input:
-	val exp
-	val sheet
-	val metaID
-	val OUTDIR
+println ">>> scVDJseq 10x Chromium >>>"
+println "> Experiment: $exp "
+println "> Sample sheet: $sheet "
+println "> Project ID: $metaID "
+println "> output dir: $OUTDIR "
+println "> Species: $species "
+println "> Reference data: $genome \n"
 
-	output:
-	stdout info
 
-	"""
-	printf "======= Info ==========\n"
-
-	printf ">>> scRNAseq 10x Chromium >>>\n"
-
-	printf "> Experiment: $exp \n"
-	printf "> Sample sheet: $sheet \n"
-	printf "> Project ID: $metaID \n"
-	printf "> output dir: $OUTDIR \n"
-        printf "> Species: $species \n"
-        printf "> Reference data: $genome \n"
-	printf "======================= \n"
-	"""	
-}
-
-info.view {  it }
 
 // Run mkFastq
 process mkfastq {
@@ -92,6 +79,8 @@ process mkfastq {
 	output:
 	file("$metaID/outs/**/*.fastq.gz") into fqc_ch
 	val 1 into crcount
+        val 1 into crVdj
+
 
 	"""
 	cellranger mkfastq \\
@@ -106,6 +95,36 @@ process mkfastq {
 	"""
 }
 
+process crVDJ {
+
+    publishDir "${VDJDIR}/", mode: "copy", overwrite: true
+    
+    input:
+    val x from crVdj
+    set sid, sname, projid, libtype from crVDJ_csv
+
+    output: 
+    file "${metaID}/*" into vdjPost
+
+    when:
+    libtype == "VDJ"
+
+    """
+    cellranger vdj \\
+    --id=$metaID \\
+    --fastqs=${FQDIR} \\
+    --reference=$vdj_genome \\
+    --sample=${sname} \\
+    --localcores=24 \\
+    --localmem=64 
+
+    mkdir -p $SUMDIR
+    cp ${metaID}/outs/web_summary.html ${SUMDIR}/${sname}.VDJ_web_summary.html
+    cp ${metaID}/outs/vloupe.vloupe ${SUMDIR}/${sname}.VDJ_vloupe.vloupe
+
+
+    """
+}
 
 process count {
 
@@ -113,10 +132,13 @@ process count {
 
 	input: 
 	val x from crcount
-        set sid, sname, projid from crCount_csv
+        set sid, sname, projid, libtype from crCount_csv
 
 	output:
 	file "${sname}/*" into cellrangerPost
+
+        when:
+        libtype == "mRNA"
 
 	"""
 	cellranger count \\
@@ -125,26 +147,28 @@ process count {
 	     --sample=$sname \\
              --project=$projid \\
 	     --transcriptome=$genome \\
-             --localcores=56 --localmem=180 
+             --localcores=56 --localmem=90 
 
-        mkdir -p $QCDIR
-        cp ${sname}/outs/web_summary.html ${QCDIR}/${sname}.web_summary.html
+        mkdir -p $SUMDIR
+        cp ${sname}/outs/web_summary.html ${SUMDIR}/${sname}.mRNA_web_summary.html
+        cp ${sname}/outs/cloupe.cloupe ${SUMDIR}/${sname}.mRNA_cloupe.cloupe
 	"""
 }
 
 
 process fastqc {
 
-	publishDir "${QCDIR}/", mode: 'copy', overwrite: true, pattern: "*_fastqc.*"
+	publishDir "${QCDIR}/FastQC/", mode: 'copy', overwrite: true, pattern: "*_fastqc.*"
 
 	input:
 	file x from fqc_ch.flatten()
 
         output:
-        val "1" into qc_ch
+        file "*fastqc*" into qc_ch
     
 	"""
         mkdir -p $QCDIR
+        mkdir -p $QCDIR/FastQC/
 
 	fastqc $x 
 	"""
@@ -157,7 +181,7 @@ process multiqc {
     publishDir "${QCDIR}/", mode: 'copy', overwrite: true
 
     input:
-    val x from qc_ch.collect()
+    file x from qc_ch.collect()
 
     output:
     file "multiqc_report.html" into multiqc_outch

@@ -1,0 +1,10 @@
+[Species],,,,,,
+Mouse,,,,,,
+
+[Data],,,,,,
+Lane,Sample_ID,Sample_Name,index,Sample_Project
+,Mono_228,Mono_228,SI-GA-D11,200515_Yiyi
+,Micro_232,Micro_232,SI-GA-E11,200515_Yiyi
+,Mono_241,Mono_241,SI-GA-F11,200515_Yiyi
+,Micro_239,Micro_239,SI-GA-G11,200515_Yiyi
+

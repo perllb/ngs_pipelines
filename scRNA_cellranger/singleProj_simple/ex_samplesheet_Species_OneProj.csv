@@ -1,5 +1,5 @@
 [Species]
-Human
+Human # Can be Human/human or Mouse/mouse/Murine/murine
 
 [Data]
 Lane,Sample_ID,Sample_Name,index,Sample_Project

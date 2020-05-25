@@ -1,0 +1,7 @@
+[Species]
+Human
+
+[Data]
+Lane,Sample_ID,Sample_Name,index,Sample_Project,Library_Type
+,S1_VDJ,S1_VDJ,SI-GA-H11,200513_VDJ,VDJ
+,S1_mRNA,S1_mRNA,SI-GA-A12,200513_VDJ,mRNA

@@ -18,6 +18,8 @@ import csv
 
 import sys, getopt
 
+usage = '>>> Usage: \n> test.py -i <inputfile> -o <outputfile>'
+
 def main(argv):
     # Read WellList file
     wellf = ""
@@ -26,16 +28,27 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
     except getopt.GetoptError:
-        print('test.py -i <inputfile> -o <outputfile>')
+        print(usage)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('test.py -i <inputfile> -o <outputfile>')
+            print(usage)
             sys.exit()
         elif opt in ("-i", "--ifile"):
             wellf = arg
         elif opt in ("-o", "--ofile"):
             newName = arg
+    
+    if wellf == "":
+        print(">Error: no input file!")
+        print(usage)
+        sys.exit()
+    if newName == "":
+        print(">Error: no output file!")
+        print(usage)
+        sys.exit()
+    
+            
     print('Input file is: "%s"' % wellf)
     print('Output file is "%s"' % newName)
     
@@ -63,6 +76,6 @@ def main(argv):
 if __name__ == "__main__":
     main(sys.argv[1:])
 
-get_ipython().run_line_magic('tb', '')
+
 
 
