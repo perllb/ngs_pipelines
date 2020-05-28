@@ -8,6 +8,7 @@ FQDIR = params.fqDir
 CNTDIR = params.countDir
 QCDIR = params.qcDir
 AGGDIR = params.aggDir
+SUMDIR = params.sumDir
 
 // Read and process sample sheet
 sheet = file(params.sheet)
@@ -108,8 +109,9 @@ process count {
 	     --transcriptome=$genome \\
              --localcores=56 --localmem=90 
 
-        mkdir -p $QCDIR
-        cp ${sname}/outs/web_summary.html ${QCDIR}/${sname}.web_summary.html
+        mkdir -p $SUMDIR
+        cp ${sname}/outs/web_summary.html ${SUMDIR}/${sname}.web_summary.html
+        cp ${sname}/outs/cloupe.cloupe ${SUMDIR}/${sname}_cloupe.cloupe
 	"""
 }
 
@@ -206,6 +208,12 @@ process aggregate {
        --id=${projid}_agg \
        --csv=${AGGDIR}/${projid}_libraries.csv \
        --normalize=mapped
+
+    mkdir -p ${SUMDIR}
+
+    cp ${AGGDIR}/${projid}_agg/outs/cloupe.cloupe ${SUMDIR}/${projid}_Aggregate_cloupe.cloupe 
+    cp ${AGGDIR}/${projid}_agg/outs/web_summary.html ${SUMDIR}/${projid}_Aggregate_web_summary.html
+
     """
     
 }
