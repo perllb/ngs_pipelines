@@ -1,2 +1,3 @@
 Repo for NGS pipelines
-Based mainly on Nextflow with Singularity containers
+Based mainly on Nextflow with Singularity containers.
+Using Singularity Containers in the perllb/Singularity repository.
