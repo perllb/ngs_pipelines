@@ -7,6 +7,7 @@ OUTDIR = params.outDir
 FQDIR = params.fqDir
 CNTDIR = params.countDir
 QCDIR = params.qcDir
+SUMDIR = params.sumDir
 
 // Read and process sample sheet
 sheet = file(params.sheet)
@@ -109,7 +110,10 @@ process count {
              --localcores=56 --localmem=90 
 
         mkdir -p $QCDIR
-        cp ${sname}/outs/web_summary.html ${QCDIR}/${sname}.web_summary.html
+        mkdir -p $SUMDIR
+
+        cp ${sname}/outs/web_summary.html ${SUMDIR}/${sname}.web_summary.html
+        cp ${sname}/outs/cloupe.cloupe ${SUMDIR}/${sname}.cloupe
 	"""
 }
 
