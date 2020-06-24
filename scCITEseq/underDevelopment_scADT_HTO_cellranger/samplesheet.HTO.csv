@@ -1,0 +1,8 @@
+[Species],,,,,,
+Mouse/Human,,,,,,
+,,,,,,
+,,,,,,
+[Data],,,,,,
+Lane,Sample_ID,Sample_Name,index,Sample_Project
+,lane_1_HTO,lane_1_HTO,ATTACTCG,200603_Roger
+,lane_2_HTO,lane_2_HTO,TCCGGAGA,200603_Roger

@@ -1,0 +1,17 @@
+[Species],,,,,
+Human/Mouse,,,,,
+,,,,,
+,,,,,
+[Data],,,,,
+Lane,Sample_ID,Sample_Name,index,Sample_Project,Sample_Species
+,Sample_A,Sample_A,SI-GA-D10,200420_Rebecca,human
+,Sample_B,Sample_B,SI-GA-E10,200420_Rebecca,human
+,Sample_C,Sample_C,SI-GA-F10,200420_Rebecca,human
+,HTO_A,HTO_A,CGAGTAAT,200420_Rebecca,human
+,HTO_B,HTO_B,TCTCCGGA,200420_Rebecca,human
+,HTO_C,HTO_C,AATGAGCG,200420_Rebecca,human
+,ctrl_2,ctrl_2,SI-GA-G10,200428_29_Catharina,murine
+,PDX1_5,PDX1_5,SI-GA-H10,200428_29_Catharina,murine
+,PDX3_1,PDX3_1,SI-GA-A11,200428_29_Catharina,murine
+,PDX3_2,PDX3_2,SI-GA-B11,200428_29_Catharina,murine
+,tumor_sample,tumor_sample,SI-GA-C11,200429_Kristina,human

@@ -1,0 +1,10 @@
+[Species],,,,,,
+Mouse/Human,,,,,,
+,,,,,,
+,,,,,,
+[Data],,,,,,
+Lane,Sample_ID,Sample_Name,index,Sample_Project,Sample_Species
+,Micro_256,Micro_256,SI-GA-B12,200527_Yiyi,murine
+,Mono_260,Mono_260,SI-GA-C12,200527_Yiyi,murine
+,lane_1_mRNA,lane_1_mRNA,SI-GA-D12,200603_Roger,human
+,lane_2_mRNA,lane_2_mRNA,SI-GA-E12,200603_Roger,human

@@ -1,0 +1,73 @@
+// Configuration file for 10x scATACseq analysis pipeline 
+
+params {
+
+       /* =====================
+       * User defined params:
+       *  =====================
+       */
+
+	// Folder of experiment raw data
+	experiment = "/fs1/seqdata/NovaSeq/200608_A00681_0156_BHMC7WDRXX"
+
+	// Sample Sheet (Must be in directory defined above!)
+	sheetType = "normal"
+	ssheet = "samplesheet.roger.rna.csv"
+
+	// Directory to store fastq data etc.
+	// If not store in same dir where you run the pipeline, give entire path.
+
+ 	outDir = "${experiment}/CTG_output_dir_Roger_HTOADT/"
+
+
+	// Project ID (Can be any)
+	metaid = "200608_Roger_HTO_ADT"
+
+	adt = true
+	hto = true
+	adt_ssheet = "${experiment}/samplesheet_adt.csv"
+	hto_ssheet = "${experiment}/samplesheet_hto.csv"
+
+	// Set true if Cite-seq Count should be run
+	citeseqCount = true
+	// Must be created manually before run
+	citeseq_tags = "${experiment}/citeseq_tags.csv"
+
+
+
+	// Automatic assignment
+	sheet = "$experiment/$ssheet"
+	fqDir = "${outDir}Fastq_raw/"
+	countDir = "${outDir}Count_CR/"
+	qcDir = "${outDir}QC/"
+	citeseqDir = "${outDir}CiteSeqCount/"
+}
+
+// Define SLURM specs
+process {
+	executor='slurm'
+	queue='normal'
+	container = '/fs1/per/containers_singularity/cellranger-rna/cellranger-rna_3.1.0_pipe.sif'
+	time='5h'
+	cpus='8'
+
+	withName:mkfastq {
+		time='24h'
+		cpus='16'
+		memory='64 GB'
+	}
+	withName:count {
+		executor='slurm'
+		queue='normal'
+		time='2d'
+		cpus='56'
+		memory='180 GB'
+	}
+
+}
+
+
+singularity {
+	    enabled = true
+	    runOptions = '--bind /fs1/ --bind /local/'	    
+}
