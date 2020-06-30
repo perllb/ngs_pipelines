@@ -44,7 +44,7 @@ for label, func in columns:
 df = pd.DataFrame.from_dict(dict(d))
 print("\n>> Yield:")
 print(df)
-df.round(2).to_csv(str(runfolder) + '/Interop_Stats_Yield.csv')
+df.round(2).to_csv(str(runfolder) + '/Interop_Stats.csv')
 
 
 ## Yield per read
@@ -57,7 +57,7 @@ for label, func in columns:
 df2 = pd.DataFrame.from_dict(dict(d))
 print("\n>> Yield pr read:")
 print(df2)
-df2.round(2).to_csv(str(runfolder) + '/Interop_Stats_Yield.per.read.csv')
+df2.round(2).to_csv(str(runfolder) + '/Interop_Stats.csv', mode = 'a')
 
 ## Density
 def format_value(val):
@@ -80,4 +80,4 @@ for label, func in columns:
 df = pd.DataFrame.from_dict(dict(d))
 print("\n>> Lane Stats:")
 print(df)
-df.round(2).to_csv(str(runfolder) + '/Interop_Stats_Lanes.csv')
+df.round(2).to_csv(str(runfolder) + '/Interop_Stats.csv', mode = 'a')

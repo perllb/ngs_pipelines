@@ -14,33 +14,13 @@ lanes = params.lanes // should be set to lanes=0 if all lanes to be included. ot
 // Read and process sample sheet
 sheet = file(params.sheet)
 
-/*
-* Print Info on experiment and sample sheet
-*/
-process printInfo {
-
-	input:
-	val exp
-	val sheet
-	val metaID
-	val OUTDIR
-
-	output:
-	stdout info
-
-	"""
-	printf "======= Info ==========\n"
-
-	printf ">>> Novaseq custom library BCL2FASTQ >>>\n"
-
-	printf "> Experiment: $exp \n"
-	printf "> Sample sheet: $sheet \n"
-	printf "> Project ID: $metaID \n"
-	printf "> output dir: $OUTDIR \n"
-
-	printf "======================= \n"
-	"""	
-}
+println "======= Info =========="
+println ">>> Demux + QC >>> "
+println "> Experiment: $exp "
+println "> Sample sheet: $sheet "
+println "> Project ID: $metaID "
+println "> output dir: $OUTDIR "
+println "======================= "
 
 
 // Run bcl2fastq
@@ -56,7 +36,7 @@ process bcl2fastq {
         bcl2fastq -R $exp \\
                   --sample-sheet $sheet \\
                   --no-lane-splitting \\
-                  --output-dir $OUTDIR        
+                  --output-dir $FQDIR        
    
                 		  
 	"""
@@ -70,7 +50,7 @@ process fastqc {
 	file x from fqc_ch
 
         output:
-        file "*fastqc.{zip,html}" into qc_ch 
+        val "*fastqc.{zip,html}" into qc_ch 
     
 	"""
         mkdir -p $QCDIR
@@ -87,7 +67,7 @@ process multiqc {
     publishDir "${QCDIR}/", mode: 'copy', overwrite: true
 
     input:
-    file x from qc_ch.collect()
+    val x from qc_ch.collect()
 
     output:
     file "multiqc_report.html" into multiqc_outch
