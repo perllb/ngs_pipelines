@@ -80,4 +80,4 @@ for label, func in columns:
 df = pd.DataFrame.from_dict(dict(d))
 print("\n>> Lane Stats:")
 print(df)
-df.round(2).to_csv(str(runfolder) + '/Interop_Stats.csv', mode = 'a')
+df.round(2).to_csv(str(runfolder) + '/Interop_Stats.csv', mode = 'a', index = False)
