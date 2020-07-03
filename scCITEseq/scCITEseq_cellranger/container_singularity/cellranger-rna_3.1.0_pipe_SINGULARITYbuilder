@@ -1,0 +1,107 @@
+Bootstrap:docker
+From:nfcore/base
+
+%labels
+	MAINTAINER Per Brattås <per.brattas@med.lu.se>
+	DESCRIPTION Singularity container Cellranger-ATAC
+	VERSION 0.0.1
+
+%environment
+	PATH=/opt/cellranger-3.1.0:/opt/bin:$PATH
+
+%setup
+	cp -R /data/bnf/sw/cellranger-3.1.0 ${SINGULARITY_ROOTFS}/opt
+	cp -R /data/bnf/sw/fastqc/FastQC_0.11.5 ${SINGULARITY_ROOTFS}/opt
+	cp --preserve=timestamp -R /data/bnf/ref/cellranger/refdata-cellranger-GRCh38-3.0.0 ${SINGULARITY_ROOTFS}/opt
+	cp --preserve=timestamp -R /data/bnf/ref/cellranger/refdata-cellranger-mm10-3.0.0 ${SINGULARITY_ROOTFS}/opt
+	
+%files
+	/data/bnf/sw/bcl2fastq2-v2.20.0.422-Source.tar.gz /opt   
+
+%post
+	rm -rf /var/lib/apt/lists/*
+	apt -y clean
+	apt -y update
+	apt -y install libz-dev build-essential gettext cmake libxml2-dev libcurl4-openssl-dev libssl-dev make libbz2-dev libboost-dev python3-pip sudo
+
+	# VDJ references
+	cd /opt/
+	wget http://cf.10xgenomics.com/supp/cell-vdj/refdata-cellranger-vdj-GRCm38-alts-ensembl-3.1.0.tar.gz
+	tar -zxvf refdata-cellranger-vdj-GRCm38-alts-ensembl-3.1.0.tar.gz
+
+	wget http://cf.10xgenomics.com/supp/cell-vdj/refdata-cellranger-vdj-GRCh38-alts-ensembl-3.1.0.tar.gz
+	tar -zxvf refdata-cellranger-vdj-GRCh38-alts-ensembl-3.1.0.tar.gz
+
+
+	mkdir -p /usr/share/man/man1
+	
+	sudo apt -y install default-jre
+
+	# Setup Kallisto Bustools
+	pip3 install kb-python
+	mkdir -p ${SINGULARITY_ROOTFS}/opt/kb
+	mkdir -p ${SINGULARITY_ROOTFS}/opt/kb/human
+	mkdir -p ${SINGULARITY_ROOTFS}/opt/kb/mouse
+
+	# get human reference
+	echo "GET HUMAN KB REF"
+
+	wget  ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+	wget ftp://ftp.ensembl.org/pub/release-100/gtf/homo_sapiens/Homo_sapiens.GRCh38.100.gtf.gz
+
+
+	kb ref --lamanno -i ${SINGULARITY_ROOTFS}/opt/kallisto/human/transcriptome.idx \
+	       -g ${SINGULARITY_ROOTFS}/opt/kallisto/human/t2g.txt \
+	       -f1 ${SINGULARITY_ROOTFS}/opt/kallisto/human/cdna.fa \
+	       -f2 ${SINGULARITY_ROOTFS}/opt/kallisto/human/intron.fa \
+	       -c1 ${SINGULARITY_ROOTFS}/opt/kallisto/human/cdna_t2c.txt \
+	       -c2 ${SINGULARITY_ROOTFS}/opt/kallisto/human/intron_t2c.txt \
+	       Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
+	       /Homo_sapiens.GRCh38.100.gtf.gz
+	       
+		
+	# get mouse reference
+	echo "GET MOUSE KB REF"
+
+	wget ftp://ftp.ensembl.org/pub/release-100/fasta/mus_musculus/dna/Mus_musculus.GRCm38.dna.primary_assembly.fa.gz
+	wget ftp://ftp.ensembl.org/pub/release-100/gtf/mus_musculus/Mus_musculus.GRCm38.100.gtf.gz
+
+	kb ref --lamanno -i ${SINGULARITY_ROOTFS}/opt/kallisto/mouse/transcriptome.idx \
+	       -g ${SINGULARITY_ROOTFS}/opt/kallisto/mouse/t2g.txt \
+	       -f1 ${SINGULARITY_ROOTFS}/opt/kallisto/mouse/cdna.fa \
+	       -f2 ${SINGULARITY_ROOTFS}/opt/kallisto/mouse/intron.fa \
+	       -c1 ${SINGULARITY_ROOTFS}/opt/kallisto/mouse/cdna_t2c.txt \
+	       -c2 ${SINGULARITY_ROOTFS}/opt/kallisto/mouse/intron_t2c.txt \
+	       Mus_musculus.GRCm38.dna.primary_assembly.fa.gz \
+	       Mus_musculus.GRCm38.100.gtf.gz
+	
+	
+
+	# Setup multiqc
+	pip3 install multiqc
+
+	# Setup bcl2fastq
+	export TMP=/tmp
+	export SOURCE=/tmp${TMP}/bcl2fastq
+	export BUILD=${TMP}/bcl2fastq2-v2.20.0-build
+	export INSTALL_DIR=${SINGULARITY_ROOTFS}/opt/bcl2fastq2-v2.20.0
+
+	mkdir /opt/bin
+        mkdir /opt/bcl2fastq
+        cd /opt/bcl2fastq
+        mkdir build
+
+	export C_INCLUDE_PATH=/usr/include/x86_64-linux-gnu
+
+	tar -xzvf /opt/bcl2fastq2-v2.20.0.422-Source.tar.gz
+        chmod ugo+x bcl2fastq/src/configure
+        chmod ugo+x bcl2fastq/src/cmake/bootstrap/installCmake.sh
+        cd build
+        ../bcl2fastq/src/configure --prefix=/opt/
+        make
+        make install
+
+	# Link fastqc 
+	ln -s /opt/FastQC_0.11.5/fastqc /opt/bin/fastqc
+
+		
