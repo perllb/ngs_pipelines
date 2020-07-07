@@ -67,10 +67,16 @@ println ">>> scRNAseq 10x Chromium >>>"
 println "> Experiment: $exp "
 println "> Sample sheet: $sheet "
 println "> Project ID: $metaID "
-println "> output dir: $OUTDIR "
 println "> Species: $species "
 println "> Reference data: $genome \n"
-println " ========================== "
+println "> output dir:  $OUTDIR "
+println "> Fastq dir:   $FQDIR "
+println "> Count dir:   $CNTDIR "
+println "> QC dir:      $QCDIR "
+println "> Summary dir: $SUMDIR "
+println "============================="
+
+
 
 
 infoall.subscribe{ println "Info: $it" }

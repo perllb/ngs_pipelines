@@ -1,4 +1,4 @@
-
+#!/bin/python
 
 import pandas as pd
 import numpy as np
@@ -8,22 +8,34 @@ import os
 def main(argv):
     inputfile = ''
     outputfile = ''
+    rewrite = False
+
+    usage='> Usage: fCounts2fpkm.py -i <inputfile> [-r (write new count table with modified column names) '
     try:
-        opts, args = getopt.getopt(argv,"hi:",["ifile="])
+        opts, args = getopt.getopt(argv,"hi:r",["ifile=", "rewrite="])
     except getopt.GetoptError:
-        print('fCounts2fpkm.py -i <inputfile> ')
+        print(usage)
         sys.exit(2)
+    if len(sys.argv) <= 1:
+        print("> Error: No input file entered:")
+        print(usage)
+        sys.exit()
     for opt, arg in opts:
         if opt == '-h':
-            print('fCounts2fpkm.py -i <inputfile> ')
+            print(usage)
             sys.exit()
         elif opt in ("-i", "--ifile"):
             inputfile = arg
-            
+        elif opt in ("-r", "--rewrite"):
+            rewrite=True
+        
+
+                  
     outputfile = os.path.splitext(inputfile)[0] + ".fpkm"
-                
-    print('Input file is "', inputfile)
-    print('Output file is "', outputfile)
+    rwoutput =  os.path.splitext(inputfile)[0] + ".csv"
+
+    print('Input file is "',inputfile,'"')
+    print('Output FPKM file is "',outputfile,'"')
     
     data = pd.read_table(inputfile,header=1,index_col=0)
         
@@ -36,6 +48,10 @@ def main(argv):
     newcol = [os.path.basename(x) for x in colnames]
     newcol2 = [x.replace('Aligned.sortedByCoord.out.bam','') for x in newcol]
     counts.columns = newcol2
+
+    if rewrite:
+        print('Output csv with mod. sample names: "',rwoutput,'"')
+        counts.to_csv(rwoutput)
 
     fpkm = 1000000000*counts.div(counts.sum()).div(lengths,axis="rows")
 
