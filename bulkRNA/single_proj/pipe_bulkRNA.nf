@@ -89,7 +89,7 @@ process bcl2fastq {
     val sheet 
 
     output:
-    val "$FQDIR/**/*fastq.gz" into fqc_ch
+    val "$FQDIR/*/*/*fastq.gz" into fqc_ch
         
     """
     bcl2fastq -R $exp \\
@@ -118,7 +118,7 @@ process fastqc {
         mkdir -p ${QCDIR}/
         mkdir -p ${QCDIR}/FastQC
 
-        mv ${FQDIR}/*/*_fastqc* ${QCDIR}/FastQC/
+        mv ${FQDIR}/*/*/*_fastqc* ${QCDIR}/FastQC/
 
        
 	"""
