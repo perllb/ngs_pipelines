@@ -33,6 +33,8 @@ def main(argv):
                   
     outputfile = os.path.splitext(inputfile)[0] + ".fpkm"
     rwoutput =  os.path.splitext(inputfile)[0] + ".csv"
+    csvoutput = os.path.splitext(inputfile)[0] + ".mod.csv"
+    
 
     print('Input file is "',inputfile,'"')
     print('Output FPKM file is "',outputfile,'"')
@@ -50,8 +52,17 @@ def main(argv):
     counts.columns = newcol2
 
     if rewrite:
+        colnames = data.columns
+        newcol = [os.path.basename(x) for x in colnames]
+        newcol2 = [x.replace('Aligned.sortedByCoord.out.bam','') for x in newcol]
+        data.columns = newcol2
         print('Output csv with mod. sample names: "',rwoutput,'"')
-        counts.to_csv(rwoutput)
+        data.to_csv(rwoutput)
+
+        print('Output csv with mod. sample names, without position data: "',csvoutput,'"')
+        counts.to_csv(csvoutput)
+
+        
 
     fpkm = 1000000000*counts.div(counts.sum()).div(lengths,axis="rows")
 
