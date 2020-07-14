@@ -52,7 +52,7 @@ Channel
     .splitCsv(header:true)
     .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project, row.Sample_Species) }
     .tap{infoall}
-    .into { crCount_csv; crAgg_ch }
+    .into { crCount_csv; crAgg_ch; fastqc_ch }
 
 // Projects
 Channel
@@ -179,7 +179,8 @@ process count {
 process fastqc {
 
 	input:
-        val projid from fqc_ch
+        val x from fqc_ch.collect()
+        set sid, sname, projid, species from fastqc_ch
 
         output:
         val projid into mqc_cha
@@ -189,7 +190,7 @@ process fastqc {
         mkdir -p ${OUTDIR}/${projid}/QC
         mkdir -p ${OUTDIR}/${projid}/QC/FastQC
 
-        for file in ${OUTDIR}/${projid}/Fastq_Raw/*/*fastq.gz
+        for file in ${OUTDIR}/${projid}/Fastq_Raw/$sname/*fastq.gz
             do fastqc \$file --outdir=${OUTDIR}/${projid}/QC/FastQC
         done
 	"""
@@ -277,8 +278,8 @@ process aggregate {
        --csv=\${aggdir}/${projid}_libraries.csv \
        --normalize=mapped
 
-    cp \${aggdir}/${projid}_agg/outs/cloupe.cloupe ${OUTDIR}/${projid}/Summaries/${projid}_Aggregate_cloupe.cloupe
-    cp \${aggdir}/${projid}_agg/outs/web_summary.html ${OUTDIR}/${projid}/Summaries/${projid}_Aggregate_web_summary.html
+    cp ${projid}_agg/outs/cloupe.cloupe ${OUTDIR}/${projid}/Summaries/${projid}_Aggregate_cloupe.cloupe
+    cp ${projid}_agg/outs/web_summary.html ${OUTDIR}/${projid}/Summaries/${projid}_Aggregate_web_summary.html
 
   
     """
