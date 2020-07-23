@@ -7,7 +7,6 @@ metaID = params.metaid // param has to be set manually in nextflow.config file
 // automatically assigned in config file
 OUTDIR = params.outDir
 FQDIR = params.fqDir
-CNTDIR = params.countDir
 QCDIR = params.qcDir
 lanes = params.lanes // should be set to lanes=0 if all lanes to be included. otherwise, set "1,3" etc.
 
@@ -22,44 +21,51 @@ println "> Project ID: $metaID "
 println "> output dir: $OUTDIR "
 println "======================= "
 
-
 // Run bcl2fastq
 process bcl2fastq {
-	
-	input:
-        val sheet 
 
-	output:
-        val "1" into fqc_ch
+    input:
+    val sheet 
 
-	"""
-        bcl2fastq -R $exp \\
-                  --sample-sheet $sheet \\
-                  --no-lane-splitting \\
-                  --output-dir $FQDIR        
+    output:
+    val "$FQDIR/*fastq.gz" into fqc_ch
+        
+    """
+    bcl2fastq -R $exp \\
+              --sample-sheet $sheet \\
+              --no-lane-splitting  \\
+              -r 16  \\
+              -p 16  \\
+              -w 16  \\
+              --output-dir $FQDIR
    
-                		  
-	"""
+     """
 }
 
+fastqs = Channel.fromPath( "${FQDIR}/*.fastq.gz" )
+
+// fastqc 
 process fastqc {
 
-	publishDir "${QCDIR}/FastQC/", mode: 'copy', overwrite: true
-
 	input:
-	file x from fqc_ch
+	val bclfq from fqc_ch.collect()
+        file fastq from fastqs.flatten()
 
         output:
-        val "*fastqc.{zip,html}" into qc_ch 
-    
-	"""
-        mkdir -p $QCDIR
-        mkdir -p $QCDIR/FastQC
+        val "${QCDIR}/FastQC/*_fastqc*" into qc_ch
 
-	fastqc $x 
+	"""
+        fastqc ${FQDIR}/$fastq
+
+        mkdir -p ${QCDIR}/
+        mkdir -p ${QCDIR}/FastQC
+
+        mv ${FQDIR}/*_fastqc* ${QCDIR}/FastQC/
+
 	"""
     
 }
+
 
 process multiqc {
 
@@ -75,6 +81,7 @@ process multiqc {
 
     script:
     """
+    
     multiqc $OUTDIR
 
     """
