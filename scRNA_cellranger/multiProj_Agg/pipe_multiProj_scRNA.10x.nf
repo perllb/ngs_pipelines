@@ -2,6 +2,7 @@
 
 // set variables
 exp = params.experiment
+basedir = params.basedir
 metaID = params.metaid
 OUTDIR = params.outDir
 FQDIR = params.fqDir
@@ -15,7 +16,7 @@ SUMDIR = params.sumDir
 sheet = file(params.sheet)
 
 // create new file for reading into channels that provide sample info!
-newsheet = file("$exp/sample_sheet.nf.csv")
+newsheet = file("$basedir/sample_sheet.nf.csv")
 
 // Read and process sample sheet
 allLines = sheet.readLines()
@@ -52,7 +53,7 @@ Channel
     .splitCsv(header:true)
     .map { row -> tuple( row.Sample_ID, row.Sample_Name, row.Sample_Project, row.Sample_Species) }
     .tap{infoall}
-    .into { crCount_csv; crAgg_ch; fastqc_ch }
+    .into { crCount_csv; crAgg_ch; mvFastq_csv }
 
 // Projects
 Channel
@@ -61,7 +62,7 @@ Channel
     .map { row -> row.Sample_Project }
     .unique()
     .tap{infoProject}
-    .into { mvFastq_csv ; agg_ch }
+    .set { agg_ch }
 
 println "============================="
 println ">>> scRNAseq 10x Chromium >>>"
@@ -87,9 +88,6 @@ infoProject.subscribe{ println "Info Projects: $it" }
 
 
 println " > Starting pipeline ...."
-
-
-
 
 
 // Run mkFastq
@@ -119,16 +117,16 @@ process moveFastq {
 
     input:
     val x from moveFastq
-    val projid from mvFastq_csv
+    set sid, sname, projid, species from mvFastq_csv
 
     output:
     val "y" into crCount
-    val projid into fqc_ch
+    set sid, sname, projid, species into fqc_ch
 
     """
     mkdir -p ${OUTDIR}/${projid}
     mkdir -p ${OUTDIR}/${projid}/Fastq_Raw
-    mv ${FQDIR}/${projid}/* ${OUTDIR}/${projid}/Fastq_Raw/
+    mv ${FQDIR}/${projid}/${sname} ${OUTDIR}/${projid}/Fastq_Raw/
     
     """
 
@@ -179,8 +177,7 @@ process count {
 process fastqc {
 
 	input:
-        val x from fqc_ch.collect()
-        set sid, sname, projid, species from fastqc_ch
+        set sid, sname, projid, species from fqc_ch
 
         output:
         val projid into mqc_cha
@@ -190,7 +187,7 @@ process fastqc {
         mkdir -p ${OUTDIR}/${projid}/QC
         mkdir -p ${OUTDIR}/${projid}/QC/FastQC
 
-        for file in ${OUTDIR}/${projid}/Fastq_Raw/$sname/*fastq.gz
+        for file in ${OUTDIR}/${projid}/Fastq_Raw/${sid}/*fastq.gz
             do fastqc \$file --outdir=${OUTDIR}/${projid}/QC/FastQC
         done
 	"""
@@ -219,7 +216,7 @@ process multiqc {
 process gen_aggCSV {
 
     input:
-    set sid, sname, projid from crAgg_ch
+    set sid, sname, projid, sspecies from crAgg_ch
 
     output:
     val projid into crAggregate
@@ -264,7 +261,8 @@ process aggregate {
     val projid from agg_ch
 
     output:
-    file "${projid}_agg" 
+    file "${projid}_agg" into doneAgg
+
 
     when:
     params.aggregate
@@ -278,11 +276,9 @@ process aggregate {
        --csv=\${aggdir}/${projid}_libraries.csv \
        --normalize=mapped
 
-    cp ${projid}_agg/outs/cloupe.cloupe ${OUTDIR}/${projid}/Summaries/${projid}_Aggregate_cloupe.cloupe
-    cp ${projid}_agg/outs/web_summary.html ${OUTDIR}/${projid}/Summaries/${projid}_Aggregate_web_summary.html
-
   
     """
 
 }
+
 

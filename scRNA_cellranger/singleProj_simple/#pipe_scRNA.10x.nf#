@@ -25,7 +25,7 @@ for ( line in allLines ) {
 
     // Define species of samples
     if ( readS ) {
-	species = line
+ 	species = line
 	if ( species.contains("Human") || species.contains("human" )) {
 	    genome = "/opt/refdata-cellranger-GRCh38-3.0.0/" 
 	} else {

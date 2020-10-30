@@ -151,7 +151,6 @@ process multiqc {
 
     input:
     file x from qc_ch.collect()
-    val projid from 
 
     output:
     file "multiqc_report.html" into multiqc_outch
@@ -159,7 +158,7 @@ process multiqc {
 
     script:
     """
-    multiqc -o $QCDIR -n $OUTDIR
+    multiqc $OUTDIR
 
     """
 }

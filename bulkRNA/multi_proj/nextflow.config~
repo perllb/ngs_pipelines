@@ -1,0 +1,80 @@
+// Configuration file for Bcl2Fastq analysis pipeline 
+
+params {
+
+       /* =====================
+       *   User defined params:
+       *  =====================
+       */
+
+	// Folder of experiment raw data
+	experiment = "/fs1/seqdata/NovaSeq/200618_A00681_0164_BHTHH3DMXX"
+
+
+	// Project ID (Can be any)
+	metaid = "200618_MV_2020_68"
+	ssheet = "samplesheet_2020_68.csv"
+
+	refbase = "/fs1/resources/ref/hg38/data"
+        ref_genome_dir = "${refbase}/star_refGenome_index/star_ref_index/"
+
+        projid = "2020_68"
+
+        // FeatureCounts params
+        gtf = "/fs1/resources/ref/hg38/gtf/gencode.v33.annotation.gtf.gz"
+        stranded = 2
+        feature = 'exon'
+	paired = '-p' // leave blank ('') if not paired end. set to ('-p') if paired end
+
+       /* =============================
+       *   Automatically set params:
+       *  =============================
+       */
+
+
+	// Sample Sheet (Must be in directory defined above!)
+	sheetType = "normal"
+
+	// Directory to store fastq data etc.
+	// If not store in same dir where you run the pipeline, give entire path.
+
+ 	outDir = "${experiment}/CTG_output_2020_68/"
+
+
+	// Lanes (Set 0 if all lanes should be included!)
+	lanes = 0
+
+	// Automatic assignment
+	sheet = "$experiment/$ssheet"
+	fqDir = "${outDir}Fastq_raw/"
+	qcDir = "${outDir}QCdir/"
+	bamDir = "${outDir}STAR/"
+	quantDir = "${outDir}Quant/"
+}
+
+// Define SLURM specs
+process {
+	executor='slurm'
+	queue='normal'
+	container = '/fs1/per/containers_singularity/RNAseqTools/RNAseqTools.sif'
+	time='15h'
+	cpus='16'
+
+	withName:STAR {
+		time='24h'
+		cpus='16'
+		memory='164 GB'
+	}
+	withName:featureCounts {
+	   	time='2d'
+		cpus='20'
+		memory='180GB'
+	}
+	
+}
+
+
+singularity {
+	    enabled = true
+	    runOptions = '--bind /fs1/ --bind /local/'	    
+}
