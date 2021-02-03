@@ -1,0 +1,4 @@
+conda create -f illumina.interop_environment.yml
+
+bash interopRun.sh
+
